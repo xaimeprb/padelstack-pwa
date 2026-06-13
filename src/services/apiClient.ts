@@ -70,10 +70,16 @@ export async function apiRequest<T>(path: string, init: RequestOptions = {}): Pr
     headers.set("Authorization", `Bearer ${await currentUser.getIdToken()}`);
   }
 
-  const response = await fetch(`${apiBaseUrl}${normalizeApiPath(path)}`, {
-    ...init,
-    headers,
-  });
+  let response: Response;
+  try {
+    response = await fetch(`${apiBaseUrl}${normalizeApiPath(path)}`, {
+      ...init,
+      headers,
+    });
+  } catch (error) {
+    console.error("[PADELSTACK PWA] API request failed", error);
+    throw new ApiError("No se pudo conectar con la API. Comprueba tu conexion o intentalo de nuevo.", 0);
+  }
 
   if (!response.ok) {
     throw new ApiError(await parseError(response), response.status);

@@ -1,4 +1,4 @@
-import { FormEvent, useEffect, useState } from "react";
+import { FormEvent, useEffect, useMemo, useState } from "react";
 import { Link, Navigate } from "react-router-dom";
 import { LogIn, UserPlus } from "lucide-react";
 import {
@@ -8,7 +8,7 @@ import {
 } from "../../services/firebase";
 import { apiBaseUrl } from "../../services/apiClient";
 import { padelstackApi } from "../../services/padelstackApi";
-import { BootstrapUserRequest, RegistrationMetadata } from "../../types";
+import { BootstrapUserRequest, RegistrationMetadata, UnitItem } from "../../types";
 import { Button, Notice, Spinner } from "../../components/ui";
 import { useAuth } from "./AuthContext";
 
@@ -24,11 +24,13 @@ const emptyProfile: BootstrapUserRequest = {
   unitDisplay: "",
 };
 
+const profileIncompleteMessage = "Tu cuenta existe, pero falta completar el perfil.";
+
 /**
  * Pantalla de acceso y alta inicial de vecino, alineada con `users/bootstrap`.
  */
 export function LoginPage() {
-  const { status, login, register } = useAuth();
+  const { status, error: authError, login, register, completeProfile, logout } = useAuth();
   const [mode, setMode] = useState<Mode>("login");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -38,22 +40,24 @@ export function LoginPage() {
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
+  const isProfileCompletion = status === "profile_incomplete";
+  const isRegistrationFlow = mode === "register" || isProfileCompletion;
+  const selectedCommunity = metadata?.communities.find((community) => community.communityId === profile.communityId);
+  const unitsForSelectedCommunity = useMemo(
+    () => getUnitsForCommunity(metadata, profile.communityId),
+    [metadata, profile.communityId],
+  );
+  const visibleError = error || (authError !== profileIncompleteMessage ? authError : null);
+
   useEffect(() => {
     let mounted = true;
-    if (mode !== "register") return;
+    if (!isRegistrationFlow) return;
     setLoadingMetadata(true);
     padelstackApi
       .getRegistrationMetadata()
       .then((nextMetadata) => {
         if (!mounted) return;
         setMetadata(nextMetadata);
-        const firstCommunity = nextMetadata.communities[0];
-        setProfile((current) => ({
-          ...current,
-          communityId: current.communityId || firstCommunity?.communityId || "",
-          communityName: current.communityName || firstCommunity?.name || "",
-          unitDisplay: current.unitDisplay || nextMetadata.units[0] || "",
-        }));
       })
       .catch((nextError) => {
         if (mounted) setError(nextError instanceof Error ? nextError.message : "No se pudo cargar el registro.");
@@ -64,7 +68,7 @@ export function LoginPage() {
     return () => {
       mounted = false;
     };
-  }, [mode]);
+  }, [isRegistrationFlow]);
 
   if (status === "authenticated") return <Navigate to="/" replace />;
 
@@ -73,12 +77,20 @@ export function LoginPage() {
     setSubmitting(true);
     setError(null);
     try {
-      if (mode === "login") {
+      if (!isRegistrationFlow) {
         await login(email, password);
       } else {
-        const communityName =
-          metadata?.communities.find((community) => community.communityId === profile.communityId)?.name ?? "";
-        await register(email, password, { ...profile, communityName });
+        const validationError = validateProfile(profile, unitsForSelectedCommunity);
+        if (validationError) {
+          setError(validationError);
+          return;
+        }
+        const payload = { ...profile, communityName: selectedCommunity?.name ?? "" };
+        if (isProfileCompletion) {
+          await completeProfile(payload);
+        } else {
+          await register(email, password, payload);
+        }
       }
     } catch (nextError) {
       setError(nextError instanceof Error ? nextError.message : "No se pudo acceder.");
@@ -106,32 +118,44 @@ export function LoginPage() {
           <p className="auth-diagnostic">API en uso: {apiBaseUrl || "VITE_API_BASE_URL sin configurar"}</p>
         )}
 
-        <div className="segmented" role="tablist" aria-label="Modo de acceso">
-          <button className={mode === "login" ? "is-active" : ""} type="button" onClick={() => setMode("login")}>
-            Acceder
-          </button>
-          <button className={mode === "register" ? "is-active" : ""} type="button" onClick={() => setMode("register")}>
-            Alta
-          </button>
-        </div>
+        {isProfileCompletion ? (
+          <Notice tone="warning">{profileIncompleteMessage}</Notice>
+        ) : (
+          <div className="segmented" role="tablist" aria-label="Modo de acceso">
+            <button className={mode === "login" ? "is-active" : ""} type="button" onClick={() => setMode("login")}>
+              Acceder
+            </button>
+            <button
+              className={mode === "register" ? "is-active" : ""}
+              type="button"
+              onClick={() => setMode("register")}
+            >
+              Alta
+            </button>
+          </div>
+        )}
 
         <form className="form-stack" onSubmit={submit}>
-          <label className="field">
-            <span>Email</span>
-            <input type="email" value={email} onChange={(event) => setEmail(event.target.value)} required />
-          </label>
-          <label className="field">
-            <span>Contraseña</span>
-            <input
-              type="password"
-              minLength={6}
-              value={password}
-              onChange={(event) => setPassword(event.target.value)}
-              required
-            />
-          </label>
+          {!isProfileCompletion && (
+            <>
+              <label className="field">
+                <span>Email</span>
+                <input type="email" value={email} onChange={(event) => setEmail(event.target.value)} required />
+              </label>
+              <label className="field">
+                <span>Contrasena</span>
+                <input
+                  type="password"
+                  minLength={6}
+                  value={password}
+                  onChange={(event) => setPassword(event.target.value)}
+                  required
+                />
+              </label>
+            </>
+          )}
 
-          {mode === "register" && (
+          {isRegistrationFlow && (
             <>
               {loadingMetadata && <Spinner label="Cargando comunidades" />}
               <div className="field-grid">
@@ -174,7 +198,18 @@ export function LoginPage() {
                 <span>Comunidad</span>
                 <select
                   value={profile.communityId}
-                  onChange={(event) => setProfile({ ...profile, communityId: event.target.value })}
+                  onChange={(event) => {
+                    const nextCommunityId = event.target.value;
+                    const nextCommunity = metadata?.communities.find(
+                      (community) => community.communityId === nextCommunityId,
+                    );
+                    setProfile({
+                      ...profile,
+                      communityId: nextCommunityId,
+                      communityName: nextCommunity?.name ?? "",
+                      unitDisplay: "",
+                    });
+                  }}
                   required
                 >
                   <option value="">Selecciona comunidad</option>
@@ -190,26 +225,36 @@ export function LoginPage() {
                 <select
                   value={profile.unitDisplay}
                   onChange={(event) => setProfile({ ...profile, unitDisplay: event.target.value })}
+                  disabled={!profile.communityId || loadingMetadata || unitsForSelectedCommunity.length === 0}
                   required
                 >
                   <option value="">Selecciona vivienda</option>
-                  {metadata?.units.map((unit) => (
-                    <option key={unit} value={unit}>
-                      {unit}
+                  {unitsForSelectedCommunity.map((unit) => (
+                    <option key={`${unit.communityId}:${unit.unitId}`} value={unit.display}>
+                      {unit.display}
                     </option>
                   ))}
                 </select>
+                {profile.communityId && !loadingMetadata && unitsForSelectedCommunity.length === 0 && (
+                  <small>No hay viviendas disponibles para esta comunidad.</small>
+                )}
               </label>
             </>
           )}
 
-          {error && <Notice tone="error">{error}</Notice>}
+          {visibleError && <Notice tone="error">{visibleError}</Notice>}
 
-          <Button type="submit" disabled={submitting}>
-            {mode === "login" ? <LogIn size={18} /> : <UserPlus size={18} />}
-            {submitting ? "Procesando..." : mode === "login" ? "Entrar" : "Crear perfil"}
+          <Button type="submit" disabled={submitting || status === "loading"}>
+            {!isRegistrationFlow ? <LogIn size={18} /> : <UserPlus size={18} />}
+            {submitting ? "Procesando..." : !isRegistrationFlow ? "Entrar" : "Crear perfil"}
           </Button>
         </form>
+
+        {isProfileCompletion && (
+          <button className="auth-link" type="button" onClick={() => void logout()}>
+            Usar otra cuenta
+          </button>
+        )}
 
         <Link to="/" className="auth-link">
           Volver al inicio
@@ -217,4 +262,39 @@ export function LoginPage() {
       </section>
     </main>
   );
+}
+
+function getUnitsForCommunity(metadata: RegistrationMetadata | null, communityId: string): UnitItem[] {
+  if (!metadata || !communityId) return [];
+  const community = metadata.communities.find((item) => item.communityId === communityId);
+  const nestedUnits = community?.units?.map((unit) => ({
+    ...unit,
+    communityId: unit.communityId || communityId,
+  }));
+  if (nestedUnits?.length) {
+    return nestedUnits;
+  }
+  const relatedUnits = metadata.unitOptions ?? metadata.units.filter(isUnitItem);
+  return relatedUnits.filter((unit) => unit.communityId === communityId);
+}
+
+function isUnitItem(unit: string | UnitItem): unit is UnitItem {
+  return typeof unit === "object" && unit !== null && "communityId" in unit;
+}
+
+function validateProfile(profile: BootstrapUserRequest, unitsForSelectedCommunity: UnitItem[]) {
+  if (!profile.communityId) {
+    return "Selecciona una comunidad.";
+  }
+  if (unitsForSelectedCommunity.length === 0) {
+    return "No hay viviendas disponibles para esta comunidad.";
+  }
+  if (!profile.unitDisplay) {
+    return "Selecciona una vivienda.";
+  }
+  const unitBelongsToCommunity = unitsForSelectedCommunity.some((unit) => unit.display === profile.unitDisplay);
+  if (!unitBelongsToCommunity) {
+    return "La vivienda seleccionada no pertenece a la comunidad elegida.";
+  }
+  return null;
 }

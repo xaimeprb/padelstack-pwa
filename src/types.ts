@@ -23,11 +23,19 @@ export type PadelUser = {
 export type CommunityItem = {
   communityId: string;
   name: string;
+  units?: UnitItem[];
+};
+
+export type UnitItem = {
+  unitId: string;
+  display: string;
+  communityId: string;
 };
 
 export type RegistrationMetadata = {
   communities: CommunityItem[];
-  units: string[];
+  units: Array<string | UnitItem>;
+  unitOptions?: UnitItem[];
 };
 
 export type BootstrapUserRequest = {
@@ -130,10 +138,11 @@ export type Incident = {
 export type AuthContextValue = {
   firebaseUser: User | null;
   profile: PadelUser | null;
-  status: "loading" | "authenticated" | "unauthenticated";
+  status: "loading" | "authenticated" | "unauthenticated" | "profile_incomplete";
   error: string | null;
   login: (email: string, password: string) => Promise<void>;
   register: (email: string, password: string, profile: BootstrapUserRequest) => Promise<void>;
+  completeProfile: (profile: BootstrapUserRequest) => Promise<void>;
   logout: () => Promise<void>;
   refreshProfile: () => Promise<void>;
 };
