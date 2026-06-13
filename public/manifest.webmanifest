@@ -1,0 +1,18 @@
+{
+  "name": "PADELSTACK",
+  "short_name": "PadelStack",
+  "description": "Reservas, anuncios, estatutos e incidencias de comunidad.",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#fdf8fd",
+  "theme_color": "#ffd79a",
+  "orientation": "portrait",
+  "icons": [
+    {
+      "src": "/icon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    }
+  ]
+}

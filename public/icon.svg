@@ -1,0 +1,8 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" role="img" aria-label="PADELSTACK">
+  <rect width="512" height="512" rx="96" fill="#4f378a"/>
+  <circle cx="256" cy="256" r="150" fill="#ffd79a"/>
+  <path d="M185 156c45-34 117-28 154 15 43 50 28 126-31 162l33 48-42 29-33-49c-64 16-128-24-139-91-7-43 10-86 58-114Z" fill="#ffffff"/>
+  <circle cx="232" cy="218" r="18" fill="#4f378a"/>
+  <circle cx="282" cy="251" r="18" fill="#4f378a"/>
+  <circle cx="226" cy="294" r="18" fill="#4f378a"/>
+</svg>
