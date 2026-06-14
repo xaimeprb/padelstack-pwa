@@ -30,7 +30,8 @@ export function formatApiDate(value?: string | null) {
 
 export function formatDateTime(value?: string | null) {
   if (!value) return "Sin fecha";
-  const date = new Date(value);
+  const normalized = value.replace(/\.(\d{3})\d+(Z|[+-]\d\d:\d\d)$/, ".$1$2");
+  const date = new Date(normalized);
   if (Number.isNaN(date.getTime())) return value;
   return new Intl.DateTimeFormat("es-ES", {
     day: "2-digit",

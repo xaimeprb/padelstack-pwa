@@ -30,7 +30,6 @@ if (import.meta.env.DEV) {
   if (configuredApiBaseUrl.trim() && configuredApiBaseUrl.trim().replace(/\/+$/, "") !== apiBaseUrl) {
     console.warn("[PADELSTACK PWA] VITE_API_BASE_URL no debe incluir /api/v1; se ha normalizado.");
   }
-  console.info("[PADELSTACK PWA] API base URL:", apiBaseUrl || "VITE_API_BASE_URL sin configurar");
 }
 
 type RequestOptions = RequestInit & {
@@ -51,7 +50,7 @@ async function parseError(response: Response) {
  */
 export async function apiRequest<T>(path: string, init: RequestOptions = {}): Promise<T> {
   if (!apiBaseUrl) {
-    throw new ApiError("VITE_API_BASE_URL no esta configurada.", 0);
+    throw new ApiError("No se pudo conectar con PADELSTACK.", 0);
   }
 
   const headers = new Headers(init.headers);
@@ -78,7 +77,7 @@ export async function apiRequest<T>(path: string, init: RequestOptions = {}): Pr
     });
   } catch (error) {
     console.error("[PADELSTACK PWA] API request failed", error);
-    throw new ApiError("No se pudo conectar con la API. Comprueba tu conexion o intentalo de nuevo.", 0);
+    throw new ApiError("No se pudo conectar con PADELSTACK. Comprueba tu conexion o intentalo de nuevo.", 0);
   }
 
   if (!response.ok) {

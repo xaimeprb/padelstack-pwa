@@ -3,6 +3,7 @@ import { CalendarDays, RefreshCw, ShieldAlert, Utensils } from "lucide-react";
 import { PageHeader } from "../../components/AppShell";
 import { Badge, Button, Card, EmptyState, Notice, PageLoader, ResourceIconShell, statusTone } from "../../components/ui";
 import { formatApiDate, todayApiDate } from "../../services/dateUtils";
+import { availabilityStatusLabel, friendlyError, reservationStatusLabel } from "../../services/displayHelpers";
 import { padelstackApi } from "../../services/padelstackApi";
 import { canReserveResource, MERENDERO_RESOURCE_ID, PADEL_RESOURCE_ID, statutorySummaryFor } from "../../services/reservationPolicy";
 import { Availability, AvailabilityDayStatus, AvailabilitySlot, Reservation, Resource } from "../../types";
@@ -11,9 +12,6 @@ function preferredResource(resources: Resource[]) {
   return resources.find((resource) => resource.resourceId === PADEL_RESOURCE_ID)?.resourceId ?? resources[0]?.resourceId ?? "";
 }
 
-/**
- * Vista de reservas: consulta disponibilidad, crea reservas y cancela las propias.
- */
 export function ReservationsPage() {
   const [resources, setResources] = useState<Resource[]>([]);
   const [reservations, setReservations] = useState<Reservation[]>([]);
@@ -30,6 +28,7 @@ export function ReservationsPage() {
     () => resources.find((resource) => resource.resourceId === selectedResourceId) ?? null,
     [resources, selectedResourceId],
   );
+  const hasResources = resources.length > 0;
 
   async function loadBase() {
     setLoadingInitial(true);
@@ -42,15 +41,19 @@ export function ReservationsPage() {
       setResources(nextResources);
       setReservations(nextReservations);
       setSelectedResourceId((current) => current || preferredResource(nextResources));
+      if (!nextResources.length) setAvailability(null);
     } catch (nextError) {
-      setError(nextError instanceof Error ? nextError.message : "No se pudieron cargar reservas.");
+      setError(friendlyError(nextError, "No se pudieron cargar tus reservas."));
     } finally {
       setLoadingInitial(false);
     }
   }
 
   async function loadAvailability(resourceId = selectedResourceId) {
-    if (!resourceId) return;
+    if (!resourceId) {
+      setAvailability(null);
+      return;
+    }
     setLoadingAvailability(true);
     setError(null);
     try {
@@ -58,7 +61,7 @@ export function ReservationsPage() {
       setReservations(await padelstackApi.myReservations());
     } catch (nextError) {
       setAvailability(null);
-      setError(nextError instanceof Error ? nextError.message : "No se pudo cargar disponibilidad.");
+      setError(friendlyError(nextError, "No se pudo cargar la disponibilidad."));
     } finally {
       setLoadingAvailability(false);
     }
@@ -92,7 +95,7 @@ export function ReservationsPage() {
       setMessage("Reserva creada correctamente.");
       await loadAvailability();
     } catch (nextError) {
-      setError(nextError instanceof Error ? nextError.message : "No se pudo reservar.");
+      setError(friendlyError(nextError, "No se pudo crear la reserva."));
     } finally {
       setSaving(false);
     }
@@ -116,7 +119,7 @@ export function ReservationsPage() {
       setMessage("Reserva de dia completo creada.");
       await loadAvailability();
     } catch (nextError) {
-      setError(nextError instanceof Error ? nextError.message : "No se pudo reservar.");
+      setError(friendlyError(nextError, "No se pudo crear la reserva."));
     } finally {
       setSaving(false);
     }
@@ -131,7 +134,7 @@ export function ReservationsPage() {
       setMessage("Reserva cancelada.");
       await loadAvailability();
     } catch (nextError) {
-      setError(nextError instanceof Error ? nextError.message : "No se pudo cancelar.");
+      setError(friendlyError(nextError, "No se pudo cancelar la reserva."));
     } finally {
       setSaving(false);
     }
@@ -139,12 +142,12 @@ export function ReservationsPage() {
 
   if (loadingInitial) return <PageLoader label="Cargando reservas" />;
 
-  const policyPreview = selectedResource ? canReserveResource(selectedResource, date, reservations) : { allowed: true };
+  const policyPreview = selectedResource ? canReserveResource(selectedResource, date, reservations) : { allowed: hasResources };
 
   return (
     <div className="page-stack">
       <PageHeader eyebrow="Reservas" title="Disponibilidad">
-        <Button variant="secondary" type="button" onClick={() => void loadAvailability()}>
+        <Button variant="secondary" type="button" onClick={() => void loadAvailability()} disabled={!selectedResourceId}>
           <RefreshCw size={17} />
           Actualizar
         </Button>
@@ -156,13 +159,21 @@ export function ReservationsPage() {
       <Card className="booking-panel">
         <div className="booking-controls">
           <label className="field">
-            <span>Recurso</span>
-            <select value={selectedResourceId} onChange={(event) => setSelectedResourceId(event.target.value)}>
-              {resources.map((resource) => (
-                <option key={resource.resourceId} value={resource.resourceId}>
-                  {resource.name}
-                </option>
-              ))}
+            <span>Instalacion</span>
+            <select
+              value={selectedResourceId}
+              onChange={(event) => setSelectedResourceId(event.target.value)}
+              disabled={!hasResources}
+            >
+              {hasResources ? (
+                resources.map((resource) => (
+                  <option key={resource.resourceId} value={resource.resourceId}>
+                    {resource.name}
+                  </option>
+                ))
+              ) : (
+                <option value="">Sin instalaciones disponibles</option>
+              )}
             </select>
           </label>
           <label className="field">
@@ -170,6 +181,14 @@ export function ReservationsPage() {
             <input type="date" value={date} min={todayApiDate()} onChange={(event) => setDate(event.target.value)} />
           </label>
         </div>
+
+        {!hasResources && (
+          <Notice tone="info">No hay instalaciones disponibles para reservar en tu comunidad.</Notice>
+        )}
+
+        {hasResources && !selectedResource && (
+          <Notice tone="info">Selecciona una instalacion para consultar disponibilidad.</Notice>
+        )}
 
         {selectedResource && (
           <div className="booking-resource-summary">
@@ -191,9 +210,13 @@ export function ReservationsPage() {
         </Notice>
       )}
 
-      {loadingAvailability ? (
+      {!hasResources ? (
+        <EmptyState title="Sin reservas disponibles" message="No se puede reservar hasta que haya instalaciones disponibles." />
+      ) : loadingAvailability ? (
         <PageLoader label="Calculando disponibilidad" />
-      ) : selectedResource?.reservationMode === "FULL_DAY" ? (
+      ) : !selectedResource ? (
+        <EmptyState title="Selecciona instalacion" message="Selecciona una instalacion para consultar disponibilidad." />
+      ) : selectedResource.reservationMode === "FULL_DAY" ? (
         <DayAvailability
           status={availability?.dayStatus ?? null}
           saving={saving}
@@ -215,7 +238,7 @@ export function ReservationsPage() {
           ))}
         </div>
       ) : (
-        <EmptyState title="Sin disponibilidad" message="La API no devuelve tramos para este recurso y fecha." />
+        <EmptyState title="Sin horarios disponibles" message="No hay horarios disponibles para la fecha seleccionada." />
       )}
 
       <Card>
@@ -228,7 +251,7 @@ export function ReservationsPage() {
             {reservations.map((reservation) => (
               <article className="compact-line" key={reservation.reservationId}>
                 <strong>{reservation.resourceName || reservation.resourceId}</strong>
-                <span>{formatApiDate(reservation.date)} · {reservation.slotLabel || "Dia completo"}</span>
+                <span>{formatApiDate(reservation.date)} - {reservation.slotLabel || "Dia completo"}</span>
               </article>
             ))}
           </div>
@@ -259,7 +282,7 @@ function DayAvailability({
   return (
     <Card className={`day-card day-card--${statusTone(state)}`}>
       <strong>{available ? "Dia disponible" : byMe ? "Reservado por ti" : "No disponible"}</strong>
-      <span>{status?.blockReason || (available ? "Merendero disponible para dia completo." : "El dia ya no esta libre.")}</span>
+      <span>{status?.blockReason || (available ? "Instalacion disponible para dia completo." : "El dia ya no esta libre.")}</span>
       {available && (
         <Button type="button" disabled={saving || disabled} onClick={onReserve}>
           Reservar dia
@@ -295,7 +318,7 @@ function SlotCard({
         <strong>{slot.label}</strong>
         <span>{available ? "Disponible" : byMe ? "Reservado por ti" : slot.blockReason || "No disponible"}</span>
       </div>
-      <Badge tone={statusTone(slot.status)}>{slot.status}</Badge>
+      <Badge tone={statusTone(slot.status)}>{availabilityStatusLabel(slot.status)}</Badge>
       {available && (
         <Button type="button" disabled={saving || !policy.allowed} onClick={() => onReserve(slot)}>
           Reservar

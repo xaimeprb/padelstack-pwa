@@ -3,6 +3,7 @@ import { Clock, MapPinned, Utensils, Trophy } from "lucide-react";
 import { Link } from "react-router-dom";
 import { PageHeader } from "../../components/AppShell";
 import { Button, Card, EmptyState, Notice, PageLoader, ResourceIconShell } from "../../components/ui";
+import { friendlyError } from "../../services/displayHelpers";
 import { padelstackApi } from "../../services/padelstackApi";
 import { statutorySummaryFor } from "../../services/reservationPolicy";
 import { Resource } from "../../types";
@@ -13,7 +14,7 @@ function iconFor(resource: Resource) {
 }
 
 /**
- * Vista de recursos activos, alimentada por `/api/v1/resources`.
+ * Vista de recursos activos para la comunidad del usuario.
  */
 export function ResourcesPage() {
   const [resources, setResources] = useState<Resource[]>([]);
@@ -28,7 +29,7 @@ export function ResourcesPage() {
         if (mounted) setResources(nextResources);
       })
       .catch((nextError) => {
-        if (mounted) setError(nextError instanceof Error ? nextError.message : "No se pudieron cargar recursos.");
+        if (mounted) setError(friendlyError(nextError, "No se pudieron cargar las instalaciones."));
       })
       .finally(() => {
         if (mounted) setLoading(false);
@@ -43,12 +44,19 @@ export function ResourcesPage() {
   return (
     <div className="page-stack">
       <PageHeader eyebrow="Instalaciones" title="Recursos comunes">
-        <Link to="/reservations">
-          <Button type="button">
+        {resources.length ? (
+          <Link to="/reservations">
+            <Button type="button">
+              <MapPinned size={18} />
+              Reservar
+            </Button>
+          </Link>
+        ) : (
+          <Button type="button" disabled>
             <MapPinned size={18} />
             Reservar
           </Button>
-        </Link>
+        )}
       </PageHeader>
 
       {error && <Notice tone="error">{error}</Notice>}
@@ -73,12 +81,15 @@ export function ResourcesPage() {
                 </span>
               </div>
               <p>{statutorySummaryFor(resource)}</p>
-              {resource.rulesText && <small>PanelAdmin: {resource.rulesText}</small>}
+              {resource.rulesText && <small>{resource.rulesText}</small>}
             </Card>
           ))}
         </div>
       ) : (
-        <EmptyState title="Sin recursos activos" message="La API no devuelve recursos disponibles para tu comunidad." />
+        <EmptyState
+          title="Sin instalaciones disponibles"
+          message="No hay instalaciones disponibles para tu comunidad en este momento."
+        />
       )}
     </div>
   );

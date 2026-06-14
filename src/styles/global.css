@@ -124,6 +124,7 @@ a {
   width: min(100%, 1200px);
   margin: 0 auto;
   padding: 24px 20px 112px;
+  overflow-x: hidden;
 }
 
 .page-stack {
@@ -133,9 +134,10 @@ a {
 
 .page-header {
   display: flex;
-  align-items: center;
+  align-items: flex-start;
   justify-content: space-between;
   gap: 16px;
+  flex-wrap: wrap;
 }
 
 .page-header span {
@@ -177,6 +179,7 @@ a {
 .button:disabled {
   opacity: 0.55;
   cursor: not-allowed;
+  transform: none;
 }
 
 .button--primary {
@@ -206,6 +209,7 @@ a {
   border-radius: 16px;
   padding: 18px;
   box-shadow: var(--shadow);
+  min-width: 0;
 }
 
 .hero-card {
@@ -425,6 +429,7 @@ a {
 .booking-controls {
   display: grid;
   gap: 12px;
+  grid-template-columns: minmax(0, 1fr);
 }
 
 .booking-resource-summary,
@@ -582,6 +587,7 @@ input,
 select,
 textarea {
   width: 100%;
+  max-width: 100%;
   min-height: 44px;
   border: 1px solid var(--outline);
   border-radius: 12px;
@@ -811,28 +817,28 @@ button.auth-link {
   right: 0;
   bottom: 0;
   z-index: 30;
-  min-height: 82px;
-  padding: 10px 12px calc(12px + env(safe-area-inset-bottom));
+  min-height: 72px;
+  padding: 8px 10px calc(10px + env(safe-area-inset-bottom));
   background: var(--surface-mid);
   border-top: 1px solid var(--outline);
   border-radius: 18px 18px 0 0;
   display: flex;
-  gap: 8px;
+  gap: 6px;
   overflow-x: auto;
   box-shadow: 0 -12px 30px rgba(28, 27, 31, 0.12);
 }
 
 .app-nav-item {
-  min-width: 78px;
-  min-height: 56px;
+  min-width: 70px;
+  min-height: 50px;
   border-radius: 999px;
   display: flex;
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  gap: 3px;
+  gap: 2px;
   color: var(--muted);
-  font-size: 11px;
+  font-size: 10px;
   font-weight: 700;
 }
 
@@ -955,7 +961,7 @@ button.auth-link {
 @media (min-width: 1040px) {
   .app-shell {
     display: grid;
-    grid-template-columns: 292px minmax(0, 1fr);
+    grid-template-columns: 248px minmax(0, 1fr);
   }
 
   .top-app-bar,
@@ -969,8 +975,8 @@ button.auth-link {
     min-height: 100vh;
     display: flex;
     flex-direction: column;
-    gap: 24px;
-    padding: 24px 18px;
+    gap: 18px;
+    padding: 20px 14px;
     background: var(--surface);
     border-right: 1px solid var(--outline);
   }
@@ -983,9 +989,9 @@ button.auth-link {
   }
 
   .brand-logo {
-    width: 48px;
-    height: 48px;
-    border-radius: 14px;
+    width: 42px;
+    height: 42px;
+    border-radius: 12px;
   }
 
   .brand-block strong,
@@ -999,24 +1005,81 @@ button.auth-link {
 
   .side-nav {
     display: grid;
-    gap: 6px;
+    gap: 4px;
   }
 
   .side-nav .app-nav-item {
     min-width: 0;
+    min-height: 42px;
     flex-direction: row;
     justify-content: flex-start;
-    padding: 0 16px;
-    font-size: 14px;
-    border-radius: 999px;
+    padding: 0 12px;
+    font-size: 13px;
+    border-radius: 12px;
   }
 
   .app-main {
     width: min(100%, 1120px);
-    padding: 36px 36px 56px;
+    padding: 30px 28px 50px;
   }
 
   .resource-card-grid {
     grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 430px) {
+  .top-app-bar {
+    height: 58px;
+    padding: 0 14px;
+  }
+
+  .top-app-bar h1 {
+    font-size: 20px;
+  }
+
+  .app-main {
+    padding: 18px 14px 96px;
+  }
+
+  .page-stack {
+    gap: 18px;
+  }
+
+  .page-header h2 {
+    font-size: 26px;
+  }
+
+  .hero-card {
+    min-height: 148px;
+    padding: 18px;
+  }
+
+  .hero-card h3 {
+    font-size: 24px;
+  }
+
+  .quick-grid {
+    gap: 10px;
+  }
+
+  .quick-link {
+    min-height: 66px;
+  }
+
+  .slot-card {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .slot-card .badge {
+    justify-self: start;
+  }
+
+  .bottom-nav {
+    min-height: 68px;
+  }
+
+  .app-nav-item {
+    min-width: 64px;
   }
 }

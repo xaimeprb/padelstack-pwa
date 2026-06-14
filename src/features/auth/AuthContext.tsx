@@ -17,7 +17,7 @@ const AuthContext = createContext<AuthContextValue | null>(null);
 const profileIncompleteMessage = "Tu cuenta existe, pero falta completar el perfil.";
 const rollbackSuccessMessage = "No se pudo completar el alta. Se ha revertido la cuenta. Intentalo de nuevo.";
 const rollbackRecoveryMessage =
-  "La cuenta se creo en Firebase Auth, pero no se pudo completar el perfil. Accede con ese correo o restablece contrasena para completar el perfil.";
+  "La cuenta se creo, pero no se pudo completar el perfil. Accede con ese correo o restablece contrasena para completar el perfil.";
 
 function getErrorCode(error: unknown) {
   if (typeof error === "object" && error !== null && "code" in error) {
@@ -58,7 +58,7 @@ async function signOutQuietly() {
 }
 
 /**
- * Proveedor de sesion para la PWA: combina Firebase Auth con el perfil `/api/v1/me`.
+ * Proveedor de sesion para la PWA.
  */
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [firebaseUser, setFirebaseUser] = useState(auth.currentUser);

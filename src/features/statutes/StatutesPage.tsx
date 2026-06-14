@@ -3,6 +3,7 @@ import { BookOpen, Search } from "lucide-react";
 import { PageHeader } from "../../components/AppShell";
 import { Card, EmptyState, Notice, PageLoader } from "../../components/ui";
 import { formatDateTime } from "../../services/dateUtils";
+import { friendlyError, isNotFound } from "../../services/displayHelpers";
 import { padelstackApi } from "../../services/padelstackApi";
 import { Statute } from "../../types";
 
@@ -13,24 +14,31 @@ const appliedRules = [
   "Zonas comunes y convivencia: arts. 18-25.",
 ];
 
-/**
- * Vista normativa de lectura, alimentada por `/api/v1/statutes`.
- */
 export function StatutesPage() {
   const [statute, setStatute] = useState<Statute | null>(null);
   const [query, setQuery] = useState("");
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [missingForCommunity, setMissingForCommunity] = useState(false);
 
   useEffect(() => {
     let mounted = true;
     padelstackApi
       .statutes()
       .then((nextStatute) => {
-        if (mounted) setStatute(nextStatute);
+        if (!mounted) return;
+        setStatute(nextStatute);
+        setMissingForCommunity(false);
       })
       .catch((nextError) => {
-        if (mounted) setError(nextError instanceof Error ? nextError.message : "No se pudieron cargar estatutos.");
+        if (!mounted) return;
+        if (isNotFound(nextError)) {
+          setStatute(null);
+          setMissingForCommunity(true);
+          setError(null);
+          return;
+        }
+        setError(friendlyError(nextError, "No se pudieron cargar los estatutos. Intentalo de nuevo mas tarde."));
       })
       .finally(() => {
         if (mounted) setLoading(false);
@@ -42,7 +50,7 @@ export function StatutesPage() {
 
   const content = useMemo(() => {
     if (!statute?.content) return [];
-    const parts = statute.content.split(/\n{2,}|(?=Artículo\s+\d+)/i).map((part) => part.trim()).filter(Boolean);
+    const parts = statute.content.split(/\n{2,}|(?=Articulo\s+\d+)|(?=Artículo\s+\d+)/i).map((part) => part.trim()).filter(Boolean);
     if (!query.trim()) return parts;
     const needle = query.trim().toLowerCase();
     return parts.filter((part) => part.toLowerCase().includes(needle));
@@ -56,35 +64,48 @@ export function StatutesPage() {
 
       {error && <Notice tone="error">{error}</Notice>}
 
-      <Card className="statute-summary">
-        <BookOpen size={24} />
-        <div>
-          <strong>Version {statute?.version ?? "N/A"}</strong>
-          <span>Actualizado {formatDateTime(statute?.updatedAt)}</span>
-        </div>
-      </Card>
+      {statute ? (
+        <>
+          <Card className="statute-summary">
+            <BookOpen size={24} />
+            <div>
+              <strong>Version {statute.version}</strong>
+              <span>Actualizado {formatDateTime(statute.updatedAt)}</span>
+            </div>
+          </Card>
 
-      <div className="rule-chips">
-        {appliedRules.map((rule) => (
-          <span key={rule}>{rule}</span>
-        ))}
-      </div>
+          <div className="rule-chips">
+            {appliedRules.map((rule) => (
+              <span key={rule}>{rule}</span>
+            ))}
+          </div>
 
-      <label className="search-input">
-        <Search size={18} />
-        <input value={query} onChange={(event) => setQuery(event.target.value)} placeholder="Buscar en estatutos" />
-      </label>
+          <label className="search-input">
+            <Search size={18} />
+            <input value={query} onChange={(event) => setQuery(event.target.value)} placeholder="Buscar en estatutos" />
+          </label>
 
-      {content.length ? (
-        <div className="statute-list">
-          {content.map((section, index) => (
-            <article key={`${section.slice(0, 24)}-${index}`}>
-              {section}
-            </article>
-          ))}
-        </div>
+          {content.length ? (
+            <div className="statute-list">
+              {content.map((section, index) => (
+                <article key={`${section.slice(0, 24)}-${index}`}>
+                  {section}
+                </article>
+              ))}
+            </div>
+          ) : (
+            <EmptyState title="Sin resultados" message="No hay apartados que coincidan con tu busqueda." />
+          )}
+        </>
       ) : (
-        <EmptyState title="Sin contenido" message="No hay texto de estatutos cargado o no coincide con la busqueda." />
+        <EmptyState
+          title="Estatutos no disponibles"
+          message={
+            missingForCommunity
+              ? "Los estatutos de tu comunidad todavia no estan disponibles."
+              : "Los estatutos de tu comunidad todavia no estan disponibles."
+          }
+        />
       )}
     </div>
   );

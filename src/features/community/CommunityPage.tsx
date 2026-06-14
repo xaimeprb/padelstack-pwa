@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { Bell, Building2, ShieldCheck, UsersRound } from "lucide-react";
 import { PageHeader } from "../../components/AppShell";
 import { Card, EmptyState, Notice, PageLoader, ResourceIconShell } from "../../components/ui";
+import { friendlyError } from "../../services/displayHelpers";
 import { padelstackApi } from "../../services/padelstackApi";
 import { Announcement, Resource } from "../../types";
 import { useAuth } from "../auth/AuthContext";
@@ -37,7 +38,7 @@ export function CommunityPage() {
         setResources(nextResources);
         setAnnouncements(nextAnnouncements);
       } catch (nextError) {
-        if (mounted) setError(nextError instanceof Error ? nextError.message : "No se pudo cargar comunidad.");
+        if (mounted) setError(friendlyError(nextError, "No se pudo cargar la informacion de tu comunidad."));
       } finally {
         if (mounted) setLoading(false);
       }
@@ -94,7 +95,7 @@ export function CommunityPage() {
               ))}
             </div>
           ) : (
-            <EmptyState title="Sin recursos" message="No hay recursos activos asociados a tu comunidad." />
+            <EmptyState title="Sin instalaciones" message="La comunidad todavia no tiene recursos comunes publicados." />
           )}
         </Card>
       </div>
@@ -114,7 +115,7 @@ export function CommunityPage() {
             ))}
           </div>
         ) : (
-          <EmptyState title="Sin anuncios" message="El PanelAdmin aun no ha publicado anuncios visibles." />
+          <EmptyState title="Sin comunicaciones" message="No hay comunicaciones visibles para tu comunidad." />
         )}
       </Card>
     </div>

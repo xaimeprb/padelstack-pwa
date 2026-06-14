@@ -22,7 +22,6 @@ const navItems = [
   { to: "/announcements", label: "Anuncios", icon: Bell },
   { to: "/statutes", label: "Estatutos", icon: BookOpen },
   { to: "/incidents", label: "Incidencias", icon: ClipboardList },
-  { to: "/profile", label: "Perfil", icon: UserRound },
 ];
 
 const titleByPath: Record<string, string> = {
@@ -42,7 +41,7 @@ function NavItems({ compact = false }: { compact?: boolean }) {
       {navItems.map(({ to, label, icon: Icon }) => (
         <NavLink key={to} to={to} end={to === "/"} className={({ isActive }) => `app-nav-item ${isActive ? "is-active" : ""}`}>
           <span className="nav-icon" aria-hidden="true">
-            <Icon size={compact ? 20 : 22} />
+            <Icon size={compact ? 18 : 19} />
           </span>
           <span>{label}</span>
         </NavLink>

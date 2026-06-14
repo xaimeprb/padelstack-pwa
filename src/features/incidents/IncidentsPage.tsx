@@ -3,14 +3,12 @@ import { Plus, Trash2 } from "lucide-react";
 import { PageHeader } from "../../components/AppShell";
 import { Badge, Button, Card, EmptyState, Notice, PageLoader, statusTone } from "../../components/ui";
 import { formatDateTime } from "../../services/dateUtils";
+import { friendlyError, incidentStatusLabel } from "../../services/displayHelpers";
 import { padelstackApi } from "../../services/padelstackApi";
 import { Incident } from "../../types";
 
 const incidentStatuses = ["OPEN", "IN_PROGRESS", "RESOLVED", "REJECTED"];
 
-/**
- * Vista de incidencias propias con alta multipart contra `/api/v1/incidents`.
- */
 export function IncidentsPage() {
   const [incidents, setIncidents] = useState<Incident[]>([]);
   const [statusFilter, setStatusFilter] = useState("");
@@ -28,7 +26,7 @@ export function IncidentsPage() {
     try {
       setIncidents(await padelstackApi.myIncidents());
     } catch (nextError) {
-      setError(nextError instanceof Error ? nextError.message : "No se pudieron cargar incidencias.");
+      setError(friendlyError(nextError, "No se pudieron cargar tus incidencias."));
     } finally {
       setLoading(false);
     }
@@ -70,7 +68,7 @@ export function IncidentsPage() {
       setMessage("Incidencia registrada.");
       await load();
     } catch (nextError) {
-      setError(nextError instanceof Error ? nextError.message : "No se pudo registrar la incidencia.");
+      setError(friendlyError(nextError, "No se pudo registrar la incidencia."));
     } finally {
       setSaving(false);
     }
@@ -84,7 +82,7 @@ export function IncidentsPage() {
       setMessage("Incidencia eliminada.");
       await load();
     } catch (nextError) {
-      setError(nextError instanceof Error ? nextError.message : "No se pudo eliminar la incidencia.");
+      setError(friendlyError(nextError, "No se pudo eliminar la incidencia."));
     } finally {
       setSaving(false);
     }
@@ -111,7 +109,7 @@ export function IncidentsPage() {
             <textarea rows={4} value={description} onChange={(event) => setDescription(event.target.value)} required />
           </label>
           <label className="field">
-            <span>Foto</span>
+            <span>Foto opcional</span>
             <input
               type="file"
               accept="image/png,image/jpeg"
@@ -120,7 +118,7 @@ export function IncidentsPage() {
           </label>
           <Button type="submit" disabled={saving}>
             <Plus size={18} />
-            {saving ? "Guardando..." : "Nueva incidencia"}
+            {saving ? "Guardando..." : "Registrar incidencia"}
           </Button>
         </form>
       </Card>
@@ -136,7 +134,7 @@ export function IncidentsPage() {
             key={status}
             onClick={() => setStatusFilter(status)}
           >
-            {status}
+            {incidentStatusLabel(status, true)}
           </button>
         ))}
       </div>
@@ -156,7 +154,7 @@ export function IncidentsPage() {
               </div>
               <p>{incident.description}</p>
               <div className="incident-card-foot">
-                <Badge tone={statusTone(incident.status)}>{incident.status}</Badge>
+                <Badge tone={statusTone(incident.status)}>{incidentStatusLabel(incident.status)}</Badge>
                 <span>{formatDateTime(incident.createdAt)}</span>
               </div>
               {incident.photoUrl && (

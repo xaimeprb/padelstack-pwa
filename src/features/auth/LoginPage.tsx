@@ -3,10 +3,8 @@ import { Link, Navigate } from "react-router-dom";
 import { LogIn, UserPlus } from "lucide-react";
 import {
   firebaseConfigErrorMessage,
-  firebaseMissingConfig,
   isFirebaseConfigured,
 } from "../../services/firebase";
-import { apiBaseUrl } from "../../services/apiClient";
 import { padelstackApi } from "../../services/padelstackApi";
 import { BootstrapUserRequest, RegistrationMetadata, UnitItem } from "../../types";
 import { Button, Notice, Spinner } from "../../components/ui";
@@ -110,12 +108,8 @@ export function LoginPage() {
 
         {!isFirebaseConfigured && (
           <Notice tone="warning">
-            {firebaseConfigErrorMessage} Variables pendientes: {firebaseMissingConfig.join(", ")}.
+            {firebaseConfigErrorMessage}
           </Notice>
-        )}
-
-        {import.meta.env.DEV && (
-          <p className="auth-diagnostic">API en uso: {apiBaseUrl || "VITE_API_BASE_URL sin configurar"}</p>
         )}
 
         {isProfileCompletion ? (

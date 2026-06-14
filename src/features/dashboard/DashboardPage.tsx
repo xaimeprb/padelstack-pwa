@@ -4,6 +4,7 @@ import { Link } from "react-router-dom";
 import { PageHeader } from "../../components/AppShell";
 import { Badge, Card, EmptyState, Notice, PageLoader, ResourceIconShell, statusTone } from "../../components/ui";
 import { formatApiDate } from "../../services/dateUtils";
+import { friendlyError, reservationStatusLabel, roleDisplayName } from "../../services/displayHelpers";
 import { padelstackApi } from "../../services/padelstackApi";
 import { Announcement, Incident, Reservation, Resource, Statute } from "../../types";
 import { useAuth } from "../auth/AuthContext";
@@ -24,9 +25,6 @@ const emptyData: DashboardData = {
   statutes: null,
 };
 
-/**
- * Dashboard vecinal de la PWA con resumen de perfil, reservas y comunicaciones.
- */
 export function DashboardPage() {
   const { profile } = useAuth();
   const [data, setData] = useState(emptyData);
@@ -56,7 +54,7 @@ export function DashboardPage() {
         statutes: statutes.status === "fulfilled" ? statutes.value : null,
       });
       const rejected = results.find((result) => result.status === "rejected");
-      setError(rejected?.status === "rejected" ? String(rejected.reason?.message ?? "Carga parcial de datos.") : null);
+      setError(rejected?.status === "rejected" ? friendlyError(rejected.reason, "Algunos datos no han podido cargarse.") : null);
       setLoading(false);
     }
     void load();
@@ -76,13 +74,13 @@ export function DashboardPage() {
     <div className="page-stack">
       <PageHeader eyebrow={profile?.communityName || profile?.communityId} title={`Hola, ${profile?.firstName || profile?.username || "vecino"}`} />
 
-      {error && <Notice tone="warning">Algunos datos no han podido cargarse. {error}</Notice>}
+      {error && <Notice tone="warning">{error}</Notice>}
 
       <section className="hero-card">
         <div>
           <span className="hero-kicker">Perfil comunitario</span>
           <h3>{profile?.fullName || profile?.email}</h3>
-          <p>{profile?.unitDisplay || "Vivienda pendiente"} · {profile?.role || "NEIGHBOR"}</p>
+          <p>{profile?.unitDisplay || "Vivienda pendiente"} - {roleDisplayName(profile?.role)}</p>
         </div>
         <Link to="/profile" className="circle-action" aria-label="Ver perfil">
           <ChevronRight size={22} />
@@ -111,9 +109,9 @@ export function DashboardPage() {
                   </ResourceIconShell>
                   <div>
                     <strong>{reservation.resourceName || reservation.resourceId}</strong>
-                    <span>{formatApiDate(reservation.date)} · {reservation.slotLabel || "Dia completo"}</span>
+                    <span>{formatApiDate(reservation.date)} - {reservation.slotLabel || "Dia completo"}</span>
                   </div>
-                  <Badge tone={statusTone(reservation.status)}>{reservation.status}</Badge>
+                  <Badge tone={statusTone(reservation.status)}>{reservationStatusLabel(reservation.status)}</Badge>
                 </article>
               ))}
             </div>
@@ -137,20 +135,22 @@ export function DashboardPage() {
               ))}
             </div>
           ) : (
-            <EmptyState title="Sin anuncios visibles" message="No hay comunicaciones publicadas para tu comunidad." />
+            <EmptyState title="Sin comunicaciones" message="No hay comunicaciones visibles para tu comunidad." />
           )}
         </Card>
       </section>
 
-      <section className="resource-strip">
-        {data.resources.slice(0, 3).map((resource) => (
-          <Link className="resource-tile" to="/resources" key={resource.resourceId}>
-            <MapPinned size={22} />
-            <strong>{resource.name}</strong>
-            <span>{resource.reservationMode === "FULL_DAY" ? "Dia completo" : `${resource.openTime ?? "--"}-${resource.closeTime ?? "--"}`}</span>
-          </Link>
-        ))}
-      </section>
+      {data.resources.length > 0 && (
+        <section className="resource-strip">
+          {data.resources.slice(0, 3).map((resource) => (
+            <Link className="resource-tile" to="/resources" key={resource.resourceId}>
+              <MapPinned size={22} />
+              <strong>{resource.name}</strong>
+              <span>{resource.reservationMode === "FULL_DAY" ? "Dia completo" : `${resource.openTime ?? "--"}-${resource.closeTime ?? "--"}`}</span>
+            </Link>
+          ))}
+        </section>
+      )}
     </div>
   );
 }

@@ -51,7 +51,7 @@ function isPastDate(date: string) {
 }
 
 /**
- * Aplica en cliente las restricciones explicitas de los estatutos antes de llamar al backend.
+ * Aplica en cliente las restricciones explicitas de los estatutos antes de solicitar la reserva.
  */
 export function canReserveResource(
   resource: Resource,
@@ -118,5 +118,5 @@ export function statutorySummaryFor(resource: Resource) {
   if (resource.resourceId === MERENDERO_RESOURCE_ID || resource.type === "MERENDERO") {
     return "Arts. 50-57: reserva de dia completo, 5 dias a 4 meses de antelacion, aforo 30 y cuota de 30 euros.";
   }
-  return resource.rulesText || "Normativa gestionada desde el PanelAdmin.";
+  return resource.rulesText || "Consulta las normas de uso publicadas por tu comunidad.";
 }

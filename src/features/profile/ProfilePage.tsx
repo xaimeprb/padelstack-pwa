@@ -1,10 +1,11 @@
 import { LogOut, RefreshCw, UserRound } from "lucide-react";
 import { PageHeader } from "../../components/AppShell";
 import { Button, Card, ResourceIconShell } from "../../components/ui";
+import { roleDisplayName } from "../../services/displayHelpers";
 import { useAuth } from "../auth/AuthContext";
 
 /**
- * Perfil del usuario actual obtenido desde `/api/v1/me`.
+ * Perfil del usuario actual.
  */
 export function ProfilePage() {
   const { profile, firebaseUser, refreshProfile, logout } = useAuth();
@@ -27,7 +28,7 @@ export function ProfilePage() {
         <div className="detail-list">
           <ProfileLine label="Comunidad" value={profile?.communityName || profile?.communityId} />
           <ProfileLine label="Vivienda" value={profile?.unitDisplay} />
-          <ProfileLine label="Rol" value={profile?.role} />
+          <ProfileLine label="Rol" value={roleDisplayName(profile?.role)} />
           <ProfileLine label="Telefono" value={profile?.phone} />
           <ProfileLine label="Estado" value={profile?.active ? "Activo" : "Inactivo"} />
         </div>

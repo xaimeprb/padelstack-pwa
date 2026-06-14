@@ -36,7 +36,7 @@ export const firebaseOptionalMissingConfig = Object.entries(rawFirebaseConfig)
 
 export const isFirebaseConfigured = firebaseMissingConfig.length === 0;
 export const firebaseConfigErrorMessage =
-  "Faltan variables publicas de Firebase Web en el .env de la PWA.";
+  "El acceso no esta configurado correctamente. Intentalo de nuevo mas tarde.";
 
 if (!isFirebaseConfigured && import.meta.env.DEV) {
   console.error(`${firebaseConfigErrorMessage} Variables pendientes: ${firebaseMissingConfig.join(", ")}.`);
@@ -51,6 +51,6 @@ export const auth = getAuth(app);
  */
 export function ensureFirebaseReady() {
   if (!isFirebaseConfigured) {
-    throw new Error(`${firebaseConfigErrorMessage} Variables pendientes: ${firebaseMissingConfig.join(", ")}.`);
+    throw new Error(firebaseConfigErrorMessage);
   }
 }
